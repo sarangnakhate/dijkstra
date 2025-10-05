@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dijkstra Stylish Visualizer</title>
+<style>
+body{background:#111;color:#0ff;text-align:center;font-family:Arial}
+h1{color:#0ff;text-shadow:0 0 15px #0ff;margin-bottom:5px}
+canvas{border:2px solid #0ff;background:#111;cursor:pointer;margin-top:10px;box-shadow:0 0 20px #0ff;}
+.controls{margin:10px 0}
+input,button{margin:5px;padding:6px 12px;border-radius:5px;border:1px solid #0ff;background:#222;color:#0ff}
+button{background:#0ff;color:#111;font-weight:bold;cursor:pointer;box-shadow:0 0 10px #0ff}
+button:hover{background:#0cc;color:#000}
+#output{background:#222;color:#0ff;margin-top:10px;padding:12px;border:1px solid #0ff;width:520px;display:inline-block;text-align:left;border-radius:8px;box-shadow:0 0 15px #0ff;}
+</style>
+</head>
+<body>
+<h1>✨ Dijkstra Stylish Visualizer ✨</h1>
+<div class="controls">
+<label>Edge Weight:</label><input type="number" id="w" placeholder="Weight">
+<label>Start Node:</label><input type="text" id="start" placeholder="A">
+<button onclick="run()">Run</button>
+<button onclick="show()">Shortest Path</button>
+<button onclick="reset()">Reset</button>
+</div>
+<p>🟢 Left-click = Node | 🔵 Right-click = Edge</p>
+<canvas id="cv" width="900" height="500"></canvas>
+<div id="output"></div>
+
+<script>
+const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+let c=cv.getContext("2d"),n=[],e=[],sel=[],par=[],dist=[];
+
+cv.onclick=o=>{
+  if(n.length>=26){alert("Max 26 nodes!"); return;}
+  n.push({id:n.length,x:o.offsetX,y:o.offsetY,name:letters[n.length]});
+  draw();
+};
+
+cv.oncontextmenu=o=>{
+  o.preventDefault();
+  let nd=get(o.offsetX,o.offsetY);
+  if(nd){sel.push(nd.id);
+    if(sel.length==2){
+      let wv=parseInt(document.getElementById("w").value);
+      if(!isNaN(wv)) e.push({u:sel[0],v:sel[1],w:wv});
+      sel=[];draw();
+    }
+  }
+};
+
+function get(x,y){return n.find(a=>Math.hypot(a.x-x,a.y-y)<25);}
+
+function draw(he=[],hn=[]){
+  c.clearRect(0,0,cv.width,cv.height);
+  c.font="14px Arial";
+  
+  // Draw edges
+  e.forEach(E=>{
+    let a=n[E.u],b=n[E.v];
+    c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);
+    c.strokeStyle=he.includes(E)?"#FFD700":"#555"; // yellow path
+    c.lineWidth=he.includes(E)?4:2;c.stroke();
+    c.fillStyle="#fff";c.fillText(E.w,(a.x+b.x)/2,(a.y+b.y)/2);
+  });
+
+  // Draw nodes
+  n.forEach(A=>{
+    c.beginPath();c.arc(A.x,A.y,25,0,7);
+    if(hn.includes(A.id)) c.fillStyle="#FF7F50"; // orange visited
+    else c.fillStyle="#00BFFF"; // blue node
+    c.fill();c.strokeStyle="#fff";c.stroke();
+    c.fillStyle="#000";c.fillText(A.name,A.x-6,A.y+5);
+  });
+}
+
+function reset(){n=[];e=[];sel=[];par=[];dist=[];draw();output.innerHTML="";}
+
+function run(){
+  if(!n.length||!e.length)return alert("Add nodes & edges");
+  let sname=document.getElementById("start").value.toUpperCase();
+  let s=n.find(x=>x.name==sname);
+  if(!s) return alert("Invalid start node!");
+  let sidx=s.id;
+  
+  dist=Array(n.length).fill(Infinity); 
+  let v=Array(n.length).fill(0); 
+  par=Array(n.length).fill(-1); 
+  dist[sidx]=0;
+
+  for(let i=0;i<n.length-1;i++){
+    let u=md(dist,v); if(u==-1) break; v[u]=1;
+    e.forEach(({u:a,v:b,w})=>{
+      let x=a==u?b:(b==u?a:null);
+      if(x!=null && !v[x] && dist[u]+w<dist[x]){dist[x]=dist[u]+w; par[x]=u;}
+    });
+    draw([], [u]);
+  }
+
+  // Show distances in output box
+  let txt="<b>Distances from "+sname+":</b><br>";
+  for(let i=0;i<n.length;i++){txt+=n[i].name+" : "+(dist[i]==Infinity?"∞":dist[i])+"<br>";}
+  output.innerHTML=txt;
+  draw();
+}
+
+function md(d,v){let m=1e9,idx=-1;d.forEach((val,i)=>{if(!v[i]&&val<=m){m=val;idx=i;}});return idx;}
+
+function show(){
+  if(!par.length) return alert("Run first!");
+  let he=[];
+  par.forEach((p,i)=>{
+    if(p!=-1){
+      let E=e.find(x=>(x.u==i&&x.v==p)||(x.v==i&&x.u==p));
+      if(E) he.push(E);
+    }
+  });
+  draw(he);
+  alert("Shortest paths highlighted!");
+}
+
+draw();
+</script>
+</body>
+</html>
